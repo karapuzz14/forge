@@ -1,5 +1,10 @@
 package forge.gamemodes.net;
 
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import forge.deck.CardPool;
 import forge.game.GameEntityView;
 import forge.game.GameView;
@@ -9,6 +14,7 @@ import forge.game.player.DelayedReveal;
 import forge.game.player.PlayerView;
 import forge.game.spellability.SpellAbilityView;
 import forge.gamemodes.match.NextGameDecision;
+import forge.gamemodes.net.event.DeltaGameUpdate;
 import forge.gui.GuiBase;
 import forge.gui.interfaces.IGuiGame;
 import forge.interfaces.IGameController;
@@ -19,17 +25,13 @@ import forge.util.FSerializableFunction;
 import forge.util.ITriggerEvent;
 import forge.util.ReflectionUtil;
 
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 /**
  * The methods that can be sent through this protocol.
  */
 public enum ProtocolMethod {
     // Server -> Client
     setGameView         (Mode.SERVER, Void.TYPE, GameView.class),
+    applyDelta          (Mode.SERVER, Void.TYPE, DeltaGameUpdate.class),
     openView            (Mode.SERVER, Void.TYPE, TrackableCollection/*PlayerView*/.class),
     afterGameEnd        (Mode.SERVER, Void.TYPE),
     showCombat          (Mode.SERVER, Void.TYPE),

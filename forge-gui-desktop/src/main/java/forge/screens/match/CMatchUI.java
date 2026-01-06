@@ -433,7 +433,7 @@ public final class CMatchUI
     @Override
     public void updateZones(final Iterable<PlayerZoneUpdate> zonesToUpdate) {
         for (final PlayerZoneUpdate update : zonesToUpdate) {
-            final PlayerView owner = update.getPlayer();
+            final PlayerView owner = update.getPlayer(getGameView() != null ? getGameView().getTracker() : null);
 
             boolean setupPlayZone = false, updateHand = false, updateAnte = false, updateZones = false;
             for (final ZoneType zone : update.getZones()) {
@@ -484,28 +484,29 @@ public final class CMatchUI
         List<PlayerZoneUpdate> updatedPlayerZones = Lists.newArrayList();
 
         for (final PlayerZoneUpdate update : zonesToUpdate) {
-            final PlayerView player = update.getPlayer();
-                for (final ZoneType zone : update.getZones()) {
-                    switch (zone) {
-                        case Battlefield: // always shown
-                            break;
-                        case Hand:  // controller hand always shown
-                            if (controller != player) {
-                                if (FloatingZone.show(this,player,zone)) {
-                                    updatedPlayerZones.add(update);
-                                }
-                            }
-                            break;
-                        default:
-                            if(!FLOATING_ZONE_TYPES.contains(zone))
-                                break;
+            final PlayerView player = update.getPlayer(getGameView() != null ? getGameView().getTracker() : null);
+            if (player == null) continue;
+            for (final ZoneType zone : update.getZones()) {
+                switch (zone) {
+                    case Battlefield: // always shown
+                        break;
+                    case Hand:  // controller hand always shown
+                        if (controller != player) {
                             if (FloatingZone.show(this,player,zone)) {
                                 updatedPlayerZones.add(update);
                             }
+                        }
+                        break;
+                    default:
+                        if(!FLOATING_ZONE_TYPES.contains(zone))
                             break;
-                    }
+                        if (FloatingZone.show(this,player,zone)) {
+                            updatedPlayerZones.add(update);
+                        }
+                        break;
                 }
             }
+        }
         return updatedPlayerZones;
     }
 
@@ -513,7 +514,8 @@ public final class CMatchUI
     public void hideZones(final PlayerView controller, final Iterable<PlayerZoneUpdate> zonesToUpdate) {
         if (zonesToUpdate != null) {
             for (final PlayerZoneUpdate update : zonesToUpdate) {
-                final PlayerView player = update.getPlayer();
+                final PlayerView player = update.getPlayer(getGameView() != null ? getGameView().getTracker() : null);
+                if (player == null) continue;
                 for (final ZoneType zone : update.getZones()) {
                     if(FLOATING_ZONE_TYPES.contains(zone))
                         FloatingZone.hide(this,player,zone);

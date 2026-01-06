@@ -1,5 +1,9 @@
 package forge.gamemodes.net.server;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import forge.LobbyPlayer;
 import forge.ai.GameState;
 import forge.deck.CardPool;
@@ -15,17 +19,16 @@ import forge.game.zone.ZoneType;
 import forge.gamemodes.match.AbstractGuiGame;
 import forge.gamemodes.net.GameProtocolSender;
 import forge.gamemodes.net.ProtocolMethod;
+import forge.gamemodes.net.event.DeltaGameUpdate;
 import forge.item.PaperCard;
 import forge.localinstance.skin.FSkinProp;
 import forge.player.PlayerZoneUpdate;
 import forge.player.PlayerZoneUpdates;
 import forge.trackable.TrackableCollection;
+import forge.trackable.TrackableObject;
+import forge.trackable.TrackableProperty;
 import forge.util.FSerializableFunction;
 import forge.util.ITriggerEvent;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 public class NetGuiGame extends AbstractGuiGame {
 
@@ -43,19 +46,70 @@ public class NetGuiGame extends AbstractGuiGame {
     }
 
     public void updateGameView() {
+        DeltaGameUpdate delta = collectDeltas();
+        if (delta != null && !delta.isEmpty()) {
+            send(ProtocolMethod.applyDelta, delta);
+        }
+    }
+
+    public void sendFullGameView() {
         send(ProtocolMethod.setGameView, getGameView());
+    }
+
+    private DeltaGameUpdate collectDeltas() {
+        GameView gv = getGameView();
+        if (gv == null) return null;
+        
+        DeltaGameUpdate delta = new DeltaGameUpdate();
+        collectObjectDelta(delta, gv, "GameView");
+        
+        if (gv.getPlayers() != null) {
+            for (PlayerView pv : gv.getPlayers()) {
+                collectObjectDelta(delta, pv, "PlayerView");
+                collectZoneDeltas(delta, pv);
+            }
+        }
+        
+        return delta;
+    }
+
+    private void collectObjectDelta(DeltaGameUpdate delta, TrackableObject obj, String type) {
+        if (obj == null) return;
+        Map<TrackableProperty, Object> props = obj.createDelta();
+        if (props != null) {
+            delta.addDelta(obj.getId(), type, props);
+            obj.clearChangedProps();
+        }
+    }
+
+    private void collectZoneDeltas(DeltaGameUpdate delta, PlayerView pv) {
+        if (pv.getHand() != null) {
+            for (CardView cv : pv.getHand()) {
+                collectObjectDelta(delta, cv, "CardView");
+            }
+        }
+        if (pv.getBattlefield() != null) {
+            for (CardView cv : pv.getBattlefield()) {
+                collectObjectDelta(delta, cv, "CardView");
+            }
+        }
+        if (pv.getGraveyard() != null) {
+            for (CardView cv : pv.getGraveyard()) {
+                collectObjectDelta(delta, cv, "CardView");
+            }
+        }
     }
 
     @Override
     public void setGameView(final GameView gameView) {
         super.setGameView(gameView);
-        updateGameView();
+        sendFullGameView();
     }
 
     @Override
     public void openView(final TrackableCollection<PlayerView> myPlayers) {
         send(ProtocolMethod.openView, myPlayers);
-        updateGameView();
+        sendFullGameView();
     }
 
     @Override

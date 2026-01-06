@@ -1,6 +1,22 @@
 package forge.gamemodes.match;
 
-import com.google.common.collect.*;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import forge.game.GameView;
 import forge.game.card.Card;
 import forge.game.card.CardView;
@@ -8,6 +24,7 @@ import forge.game.card.CardView.CardStateView;
 import forge.game.event.GameEventSpellAbilityCast;
 import forge.game.event.GameEventSpellRemovedFromStack;
 import forge.game.player.PlayerView;
+import forge.gamemodes.net.event.DeltaGameUpdate;
 import forge.gui.FThreads;
 import forge.gui.GuiBase;
 import forge.gui.control.PlaybackSpeed;
@@ -20,13 +37,12 @@ import forge.localinstance.skin.FSkinProp;
 import forge.model.FModel;
 import forge.player.PlayerControllerHuman;
 import forge.trackable.TrackableCollection;
+import forge.trackable.TrackableObject;
+import forge.trackable.TrackableProperty;
 import forge.trackable.TrackableTypes;
+import forge.trackable.Tracker;
 import forge.util.FSerializableFunction;
 import forge.util.Localizer;
-import org.apache.commons.lang3.StringUtils;
-
-import java.io.Serializable;
-import java.util.*;
 
 public abstract class AbstractGuiGame implements IGuiGame, IMayViewCards {
     private PlayerView currentPlayer = null;
@@ -108,9 +124,61 @@ public abstract class AbstractGuiGame implements IGuiGame, IMayViewCards {
             return;
         }
 
-        //if game view set to another instance without being first cleared,
-        //update existing game view object instead of overwriting it
         gameView.copyChangedProps(gameView0);
+    }
+
+    @Override
+    public void applyDelta(DeltaGameUpdate delta) {
+        if (delta == null || gameView == null) return;
+        
+        Tracker tracker = gameView.getTracker();
+        for (DeltaGameUpdate.ObjectDelta od : delta.getDeltas()) {
+            TrackableObject obj = findTrackableObject(od.getObjectId(), od.getObjectType());
+            if (obj != null) {
+                Map<TrackableProperty, Object> resolved = resolveProps(od.getProps(), tracker);
+                obj.applyDelta(resolved);
+            }
+        }
+    }
+
+    private Map<TrackableProperty, Object> resolveProps(Map<Integer, Object> props, Tracker tracker) {
+        TrackableProperty[] allProps = TrackableProperty.values();
+        Map<TrackableProperty, Object> result = new java.util.EnumMap<>(TrackableProperty.class);
+        for (Map.Entry<Integer, Object> e : props.entrySet()) {
+            int ordinal = e.getKey();
+            if (ordinal >= 0 && ordinal < allProps.length) {
+                result.put(allProps[ordinal], resolveValue(e.getValue(), tracker));
+            }
+        }
+        return result;
+    }
+
+    private Object resolveValue(Object value, Tracker tracker) {
+        if (value instanceof forge.gamemodes.net.event.ViewRef) {
+            return ((forge.gamemodes.net.event.ViewRef) value).resolve(tracker);
+        }
+        if (value instanceof forge.gamemodes.net.event.ViewRefCollection) {
+            return ((forge.gamemodes.net.event.ViewRefCollection) value).resolve(tracker);
+        }
+        return value;
+    }
+
+    private TrackableObject findTrackableObject(int id, String type) {
+        if (gameView == null) return null;
+        
+        if ("GameView".equals(type) && gameView.getId() == id) {
+            return gameView;
+        }
+        
+        if ("PlayerView".equals(type)) {
+            return gameView.getTracker().getObj(TrackableTypes.PlayerViewType, id);
+        }
+        
+        if ("CardView".equals(type)) {
+            return gameView.getTracker().getObj(TrackableTypes.CardViewType, id);
+        }
+        
+        return null;
     }
 
     public final IGameController getGameController() {

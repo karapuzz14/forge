@@ -1,17 +1,16 @@
 package forge.player;
 
-import com.google.common.collect.Maps;
-import forge.game.player.PlayerView;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
-public class PlayerZoneUpdates implements Iterable<PlayerZoneUpdate>, Serializable {
-    private static final long serialVersionUID = 7023549243041119023L;
+import com.google.common.collect.Maps;
 
-    private final Map<PlayerView, PlayerZoneUpdate> updates = Collections.synchronizedMap(Maps.newHashMap());
+public class PlayerZoneUpdates implements Iterable<PlayerZoneUpdate>, Serializable {
+    private static final long serialVersionUID = 7023549243041119024L;
+
+    private final Map<Integer, PlayerZoneUpdate> updates = Collections.synchronizedMap(Maps.newHashMap());
 
     public PlayerZoneUpdates() {
     }
@@ -32,10 +31,10 @@ public class PlayerZoneUpdates implements Iterable<PlayerZoneUpdate>, Serializab
     }
 
     public void add(final PlayerZoneUpdate update) {
-        final PlayerView player = update.getPlayer();
-        final PlayerZoneUpdate oldUpdate = updates.get(player);
+        final int playerId = update.getPlayerId();
+        final PlayerZoneUpdate oldUpdate = updates.get(playerId);
         if (oldUpdate == null) {
-            updates.put(player, update);
+            updates.put(playerId, update);
         } else {
             oldUpdate.add(update);
         }

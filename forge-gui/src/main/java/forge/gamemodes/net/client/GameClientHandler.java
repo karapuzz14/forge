@@ -1,8 +1,18 @@
 package forge.gamemodes.net.client;
 
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Iterator;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+
 import forge.LobbyPlayer;
-import forge.game.*;
+import forge.game.Game;
+import forge.game.GameRules;
+import forge.game.GameType;
+import forge.game.GameView;
+import forge.game.Match;
 import forge.game.player.PlayerView;
 import forge.game.player.RegisteredPlayer;
 import forge.gamemodes.match.LobbySlot;
@@ -23,11 +33,6 @@ import forge.trackable.TrackableObject;
 import forge.trackable.TrackableTypes;
 import forge.trackable.Tracker;
 import io.netty.channel.ChannelHandlerContext;
-
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.Iterator;
-import java.util.List;
 
 final class GameClientHandler extends GameProtocolHandler<IGuiGame> {
     private final FGameClient client;
@@ -56,6 +61,11 @@ final class GameClientHandler extends GameProtocolHandler<IGuiGame> {
     @Override
     protected IRemote getRemote(final ChannelHandlerContext ctx) {
         return client;
+    }
+
+    @Override
+    protected Tracker getTracker() {
+        return tracker;
     }
 
     @Override
@@ -255,27 +265,20 @@ final class GameClientHandler extends GameProtocolHandler<IGuiGame> {
             if (obj instanceof PlayerView) {
                 replicatePlayerView((PlayerView) obj);
             }
-            else if (obj instanceof PlayerZoneUpdate) {
-                replicatePlayerView(((PlayerZoneUpdate) obj).getPlayer());
-            }
-            else if (obj instanceof PlayerZoneUpdates) {
-                Iterator itrPlayerZoneUpdates = ((PlayerZoneUpdates) obj).iterator();
-                while (itrPlayerZoneUpdates.hasNext()) {
-                    PlayerView newPlayerView = ((PlayerZoneUpdate)itrPlayerZoneUpdates.next()).getPlayer();
-                    /**
-                     * FIXME: this should be handled by the original call to updateTrackers
-                     * However, PlayerZoneUpdates aren't a TrackableCollection.
-                     * So, additional logic will be needed. Leaving here for now.
-                     */
-                    updateTrackers(new Object[]{newPlayerView});
-                    replicatePlayerView(newPlayerView);
+            else if (obj instanceof PlayerZoneUpdate pzu) {
+                PlayerView pv = pzu.getPlayer(tracker);
+                if (pv != null) {
+                    replicatePlayerView(pv);
                 }
             }
-            /*
-            else {
-                System.err.println("replicateProps - did not handle : " + obj.getClass().toString());
+            else if (obj instanceof PlayerZoneUpdates pzus) {
+                for (PlayerZoneUpdate pzu : pzus) {
+                    PlayerView pv = pzu.getPlayer(tracker);
+                    if (pv != null) {
+                        replicatePlayerView(pv);
+                    }
+                }
             }
-             */
         }
     }
 

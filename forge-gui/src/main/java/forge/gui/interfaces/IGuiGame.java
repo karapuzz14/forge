@@ -1,5 +1,9 @@
 package forge.gui.interfaces;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import forge.LobbyPlayer;
 import forge.ai.GameState;
 import forge.deck.CardPool;
@@ -15,6 +19,7 @@ import forge.game.player.IHasIcon;
 import forge.game.player.PlayerView;
 import forge.game.spellability.SpellAbilityView;
 import forge.game.zone.ZoneType;
+import forge.gamemodes.net.event.DeltaGameUpdate;
 import forge.gui.control.PlaybackSpeed;
 import forge.interfaces.IGameController;
 import forge.item.PaperCard;
@@ -25,14 +30,13 @@ import forge.trackable.TrackableCollection;
 import forge.util.FSerializableFunction;
 import forge.util.ITriggerEvent;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 public interface IGuiGame {
     void setGameView(GameView gameView);
 
     GameView getGameView();
+
+    default void applyDelta(DeltaGameUpdate delta) {
+    }
 
     void setOriginalGameController(PlayerView view, IGameController gameController);
 

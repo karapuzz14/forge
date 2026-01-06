@@ -113,6 +113,38 @@ public abstract class TrackableObject implements IIdentifiable, Serializable {
         key.updateObjLookup(tracker, props.get(key));
     }
 
+    public final boolean hasChanges() {
+        return !changedProps.isEmpty();
+    }
+
+    public final Set<TrackableProperty> getChangedProps() {
+        return changedProps;
+    }
+
+    public final void clearChangedProps() {
+        changedProps.clear();
+    }
+
+    public final Map<TrackableProperty, Object> createDelta() {
+        if (changedProps.isEmpty()) {
+            return null;
+        }
+        Map<TrackableProperty, Object> delta = new EnumMap<>(TrackableProperty.class);
+        for (TrackableProperty key : changedProps) {
+            delta.put(key, props.get(key));
+        }
+        return delta;
+    }
+
+    public final void applyDelta(Map<TrackableProperty, Object> delta) {
+        if (delta == null) return;
+        for (Entry<TrackableProperty, Object> e : delta.entrySet()) {
+            props.put(e.getKey(), e.getValue());
+            changedProps.add(e.getKey());
+            e.getKey().updateObjLookup(tracker, e.getValue());
+        }
+    }
+
     public final void serialize(final TrackableSerializer ts) {
         ts.write(changedProps.size());
         for (TrackableProperty key : changedProps) {
