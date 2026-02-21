@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import forge.game.IIdentifiable;
+import forge.game.card.CardView;
 
 //base class for objects that can be tracked and synced between game server and GUI
 public abstract class TrackableObject implements IIdentifiable, Serializable {
@@ -132,6 +133,9 @@ public abstract class TrackableObject implements IIdentifiable, Serializable {
         Map<TrackableProperty, Object> delta = new EnumMap<>(TrackableProperty.class);
         for (TrackableProperty key : changedProps) {
             delta.put(key, props.get(key));
+        }
+        if (this instanceof CardView && props.containsKey(TrackableProperty.CurrentState)) {
+            delta.put(TrackableProperty.CurrentState, props.get(TrackableProperty.CurrentState));
         }
         return delta;
     }
